@@ -130,8 +130,90 @@ Arthritis |>
   count(Improved)
 
 #함수 forcats::fct_recode()
-#바꾸고자하는 범주의 level만 변경할 수 있음
+#바꾸고자하는 범주의 level(속성명)만 변경할 수 있음 -> 범주 개수가 많을때 용이함
 Arthritis |> 
   mutate(Improved = fct_recode(Improved, No = "None", Yes = "Some",
                                Yes = "Marked")) |> 
   count(Improved)
+
+#분할표에서 결측값 처리
+#airquality에서 월별 Ozone 값이 80이 넘는 날 수
+with(airquality, table(OzHi = Ozone > 80, Month))
+
+#결측값 범주도 포함해야함
+#useNA = "ifany"를 사용하여 월별 결측값도 확인 가능
+with(airquality, 
+     table(OzHi = Ozone > 80, Month, useNA = "ifany"))
+
+
+#이변량 및 다변량 범주형 자료를 위한 그래프
+library(tidyverse)
+data(Arthritis, package="vcd")
+Arthritis |> 
+  ggplot(aes(x = Treatment, fill = Improved)) +
+  geom_bar()
+#함수 count()를 사용할 경우 -> geom_col() 사용
+Arthritis |> 
+  count(Treatment, Improved) |> 
+  ggplot(aes(x = Treatment, y = n, fill = Improved)) +
+  geom_col()
+
+#요인이 포함된 데이터 프레임인 경우
+Arthritis |> 
+  ggplot(aes(x = Treatment, fill = Improved)) +
+  geom_bar(position = "dodge")
+#count()로 작성된 도수분포가 자료인 경우
+Arthritis |> 
+  count(Treatment, Improved) |> 
+  ggplot(aes(x = Treatment, y = n, fill = Improved))+
+  geom_col(position = "dodge2")
+
+#조건부 확률에 의한 막대그래프
+Arthritis |> 
+  ggplot(aes(x = Treatment, fill = Improved))+
+  geom_bar(position = "fill")
+
+#facet을 사용하여 Treatment 범주별로 그래프 분리
+Arthritis |> 
+  ggplot(aes(x = Improved, y = after_stat(prop),
+             group = 1))+
+  geom_bar()+
+  facet_wrap(vars(Treatment))
+
+#상대도수로 변경
+#각 Treatment에 대한 비율을 구해야 하기 때문에
+#group_by()로 Treatment의 범주별로 grouping
+Arthritis |> 
+  count(Treatment, Improved) |> 
+  group_by(Treatment) |> 
+  mutate(prop = n/sum(n)) |> 
+  ggplot(aes(x = Improved, y = prop, fill = Improved))+
+  geom_col()+
+  facet_wrap(vars(Treatment)) +
+  ylab(NULL)
+
+#mosaic 그래프
+#두개 이상의 범주형 변수 관계 탐색에 유용한 그래프
+#조건이 추가됨에 따라 내부적으로 범주가 나누어지는 그래프
+#조건이 너무 많으면 가시성이 확 떨어짐 (한 3개정도일때 사용하면 좋음)
+library(vcd)
+my_table <- with(Arthritis, table(Treatment, Improved))
+mosaic(my_table, direction = "v")
+
+#원자료를 입력한 공식적인 방법
+# ~ 기준으로 왼쪽이 반응변수, 오른쪽이 설명변수
+mosaic(Improved ~ Treatment, data = Arthritis, direction = "v")
+
+#Titanic 데이터
+#bullet이 있는 경우 해당 범주의 데이터 없음
+str(Titanic)
+#한개의 설명변수와 비교
+mosaic(Survived ~ Class, data = Titanic, direction = "v")
+mosaic(Survived ~ Sex, data = Titanic, direction = "v")
+mosaic(Survived ~ Age, data = Titanic, direction = "v")
+#두개의 설명변수와 비교
+mosaic(Survived ~ Sex + Age, data = Titanic, direction = "v")
+mosaic(Survived ~ Class + Sex, data = Titanic, direction = "v")
+mosaic(Survived ~ Class + Age, data = Titanic, direction = "v")
+#최종 그래프 비교
+mosaic(Survived ~ Class + Sex + Age, data = Titanic, direction = "v")
