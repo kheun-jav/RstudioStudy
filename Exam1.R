@@ -1,5 +1,6 @@
 #UsingR::grades
 #122명의 학생들이 선수과목과 후수과목으로 강좌에서 받은 학점 정보
+library(tidyverse)
 data(grades, package="UsingR")
 str(grades)
 

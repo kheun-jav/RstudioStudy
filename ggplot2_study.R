@@ -217,3 +217,73 @@ mosaic(Survived ~ Class + Sex, data = Titanic, direction = "v")
 mosaic(Survived ~ Class + Age, data = Titanic, direction = "v")
 #최종 그래프 비교
 mosaic(Survived ~ Class + Sex + Age, data = Titanic, direction = "v")
+
+#일변량 연속형 자료의 요약통계
+#mean, median, mode, sd 등등의 통계는
+#summarise()를 사용하여 출력 가능
+
+#예제) UsingR 패키기의 데이터 프레임 cfb
+data(cfb, package="UsingR")
+str(cfb)
+#INCOME의 요약 통계 확인
+cfb |> 
+  summarise(avg = mean(INCOME), med = median(INCOME))
+#평균이 중앙값보다 훨씬 높음
+#우측으로 치우친 분포임을 예측할 수 있ㅇ므
+#그래프 작성
+cfb |> 
+  ggplot(aes(x = INCOME, y = after_stat(density)))+
+  geom_histogram(bins = 35, fill = "steelblue")+
+  geom_density(color = "red", linewidth = 1)
+#우측으로 심하게 치우친 분포
+#로그변환으로 좌우대칭에 가까운 분포 형태로 변환
+cfb |> 
+  mutate(log_income = log(INCOME)) |> 
+  summarise(avg = mean(log_income),
+            med = median(log_income))
+#INCOME원자료에 0이 있는 경우 +1을 하여 로그변환
+cfb |> 
+  mutate(log_income = log(INCOME+1)) |> 
+  summarise(avg = mean(log_income),
+            med = median(log_income))
+#변환 후 평균과 중앙값이 거의 유사함
+#그래프 작성
+cfb |> 
+  mutate(log_income = log(INCOME + 1)) |> 
+  ggplot(aes(x= log_income, y = after_stat(density)))+
+  geom_histogram(color = "steelblue", bins = 35)+
+  geom_density(color = "red", linewidth = 1)
+
+#이변량 및 다변량 연속형 자료 탐색
+mpg |> 
+  count(cyl)
+mpg_1<-mpg |> 
+  filter(cyl != 5) |> 
+  mutate(cyl = as.factor(cyl))
+
+mpg_1 |> 
+  ggplot(aes(x= hwy))+
+  geom_histogram(binwidth = 5)+
+  facet_wrap(vars(cyl), ncol = 1)
+#position = "identity"를 사용하면 그래프가 겹쳐짐
+mpg_1 |> 
+  ggplot(aes(x = hwy, fill = cyl))+
+  geom_histogram(binwidth = 5, alpha = 0.4,
+                 position = "identity")
+
+#나눠지는 변수는 범주형 or 문자형
+mpg_1 |> 
+  ggplot(aes(x = cyl , y = hwy))+
+  geom_boxplot()+
+  labs(x = "Number of Cylinders", y = "MPG")
+
+#outliers 확인
+pp <- ggplot(mpg_1, aes(x = cyl, y = hwy))+
+  geom_boxplot()
+pp_out<- ggplot_build(pp)[[1]][[1]]$outliers
+pp_out
+#3개의 boxplot에 대한 이상치가 나타남.
+#이상값 자료 출력
+mpg_1 |> 
+  filter((cyl == 4 & hwy %in% pp_out[[1]])) |
+  (cyl ==8 & hwy %in% pp_out[[3]])
