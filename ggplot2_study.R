@@ -284,6 +284,64 @@ pp_out<- ggplot_build(pp)[[1]][[1]]$outliers
 pp_out
 #3개의 boxplot에 대한 이상치가 나타남.
 #이상값 자료 출력
+mpg_1 |>  
+  filter((cyl == 4 & hwy %in% pp_out[[1]]) | 
+           (cyl == 8 & hwy %in% pp_out[[3]])) |>  
+  select(1:2, cyl, hwy)
+
+#boxplot에 의한 그룹 자료의 분포 비교
+ggplot(mpg_1, aes(x = class, y= hwy))+
+  geom_boxplot()
+
+#boxplot 배치 순서 조정 -> reorder() 함수 사용
+#hwy별 class의 boxplot을 median 기준 오름차순으로 정렬
 mpg_1 |> 
-  filter((cyl == 4 & hwy %in% pp_out[[1]])) |
-  (cyl ==8 & hwy %in% pp_out[[3]])
+  ggplot(aes(x = reorder(class, hwy, FUN = median),
+             y = hwy)) +
+  geom_boxplot() +
+  labs(x = "class")
+
+#cyl별 확률밀도함수 그래프
+mpg_1 |> 
+ggplot(aes(x = hwy))+
+  geom_density() +
+  xlim(5, 50) +
+  facet_wrap(vars(cyl), ncol = 1)
+
+#시각적 요소(fill, color)를 사용
+#alpha로 fill의 투명도를 조정하여 겹침 확인
+mpg_1 |> 
+  ggplot(aes(x = hwy, fill = cyl)) +
+  geom_density(alpha = 0.2) +
+  xlim(5, 50)
+mpg_1 |> 
+  ggplot(aes(x = hwy, color = cyl)) +
+  geom_density(linewidth = 1) +
+  xlim(5, 50)
+
+#평균 막대 그래프와 오차 막대를 사용
+#그룹별 평균 및 신뢰 구간 계산 결과
+mpg_1 |> 
+  group_by(cyl) |> 
+  summarise(mean_cl_normal(hwy))
+#그래프 작성
+mpg_1 |> 
+  group_by(cyl) |> 
+  summarise(mean_cl_normal(hwy)) |> 
+  ggplot(aes(x = cyl, y = y))+
+  geom_col(fill = "skyblue", width = 0.5)+
+  geom_errorbar(aes(ymin = ymin, ymax = ymax),
+                width = 0.2)+
+  labs(y = null)
+
+#함수 stat_summary()에 의한 작성
+install.packages("xfun")
+library(Hmisc)
+mpg_1 |> 
+  ggplot(aes(x = cyl, y = hwy))+
+  stat_summary(fun = "mean", geom = "bar",
+               fill = "steelblue", width = 0.5)+
+  stat_summary(fun.data = "mean_cl_normal",
+               geom = "errorbar", width = 0.2,
+               color = "red", linewidth = 1) +
+  labs(y = NULL)
