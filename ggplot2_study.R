@@ -345,3 +345,75 @@ mpg_1 |>
                geom = "errorbar", width = 0.2,
                color = "red", linewidth = 1) +
   labs(y = NULL)
+
+#4.2 산점도 작성
+library(tidyverse)
+data(Cars93, package = "MASS")
+
+#기본 산점도 작성
+ggplot(Cars93, aes(x = Weight, y = MPG.highway)) +
+  geom_point()
+
+#세 번째 변수 시각적 요소로 추가
+ggplot(Cars93, aes(x = Weight, y = MPG.highway,
+                   color = Origin))+
+  geom_point()
+#시각적 요소에 숫자형 변수 매핑
+ggplot(Cars93, aes(x = Weight, y = MPG.highway,
+                   color = EngineSize))+
+  geom_point()
+#시각적 요소로 매핑하긴 했지만, 크게 효과적으로 보이지는 않음
+
+#산점도에 회귀직선 추가
+#(1) 선형회귀직선
+ggplot(Cars93, aes(x = Weight, y = MPG.highway))+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)
+
+#(2) 비모수 회귀곡선
+ggplot(Cars93, aes(x = Weight, y = MPG.highway))+
+  geom_point()+
+  geom_smooth(se = FALSE)
+
+#두 내용 함께 추가
+ggplot(Cars93, aes(x = Weight, y = MPG.highway))+
+  geom_point()+
+  geom_smooth(aes(color = "회귀직선"),
+    method = "lm", se = FALSE)+
+  geom_smooth(aes(color = "비모수회귀곡선"),
+              se = FALSE)+
+  labs(color = "회귀모형")
+
+#산점도에 수평, 수직선 추가
+ggplot(Cars93, aes(x = Weight, y = MPG.highway)) +
+  geom_point()+
+  geom_abline(slope = -0.005, intercept = 45,
+              color = "red") +
+  geom_vline(xintercept = 3000, color = "blue")+
+  geom_hline(yintercept = 30, color = "darkgreen")
+
+#수직, 수평선에 각 변수의 평균 기준으로 생성
+ggplot(Cars93, aes(x = Weight, y = MPG.highway))+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_vline(aes(xintercept = mean(Weight)),
+             color = "red")+
+  geom_hline(aes(yintercept = mean(MPG.highway)),
+             color = "darkgreen")
+#매핑한 변수들에 대한 정보를 가져올려면
+#aes()내부에 인터셉트를 설정해야함
+
+#라벨 추가하기
+#기본 산점도 작성
+p<- ggplot(Cars93, aes(x = Weight, y = MPG.highway))+
+  geom_point()
+
+#라벨 추가(MPG.highway가 40 이상인 기종만 texting)
+p + geom_text(data = filter(Cars93, MPG.highway > 40),
+              aes(label = paste(Manufacturer, Model)),
+              vjust = "top", hjust = "left")
+#vjust , hjust는 점의 위치를 조정(텍스트가 아님)
+#vjust = 상하 위치 조정 / hjust = 좌우 위치 조정
+#ex)vjust = "top", hjust = "left" => 점의 위치가 좌측 상단
+#따라서 텍스트의 위치는 우측 하단
+
