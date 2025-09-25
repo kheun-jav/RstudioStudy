@@ -417,3 +417,114 @@ p + geom_text(data = filter(Cars93, MPG.highway > 40),
 #ex)vjust = "top", hjust = "left" => 점의 위치가 좌측 상단
 #따라서 텍스트의 위치는 우측 하단
 
+#산점도의 단점
+#이산형 자료인 경우
+ChickWeight |> 
+  ggplot(aes(x = Time, y = weight))+
+  geom_point()
+#method) jittering , boxplot
+ChickWeight |> 
+  ggplot(aes(x = Time, y = weight))+
+  geom_jitter(width = 0.2, height = 0)
+
+ChickWeight |> 
+  ggplot(aes(x = as.factor(Time), y = weight))+
+  geom_boxplot() +
+  labs(x = "Time")
+#나의 해석
+#시간이 지남에 따른 닭의 무게 변화를 확인하는게 목적이므로
+#산점도보다는 boxplot이 적합해보인다(기술통계 및 이상치 확인도 용이하기 때문)
+
+#대규모 자료인 경우
+diamonds |> 
+  ggplot(aes(x = carat, y= price))+
+  geom_point()
+#3 이상의 값들이 거의 없으므로 범위 조정하여 다시 확인
+p_dia<-diamonds |> 
+  filter(carat < 3) |> 
+  ggplot(aes(x = carat, y= price))
+p_dia + geom_point()
+#method) 점의 크기를 줄이고 투명도 높이기
+p_dia + geom_point(alpha = 0.1, shape = 20)
+
+#method) geom_bin2d()로 2차원 히스토그램 작성
+p_dia + geom_bin2d()
+#영역의 세분화가 필요해보임
+
+#색 조정 관련 패키지
+library(paletteer)
+#구간 세분화
+p_dia + geom_bin2d(bins = 100) +
+  scale_fill_paletteer_c("scico::berlin")
+#색상을 통해 값들이 밀집된 구간은 확인할 수 있으나
+#확실한 시각화 도출이 이루어지진 않았음.
+
+#method) x축 변수를 범주형으로 변환하고 boxplot 작성
+#cut_number(), cut_interval(), cut_width()을 사용
+#mutate()로 생성하지 않고 그룹핑으로 cut 진행
+p_dia +
+  geom_boxplot(aes(group = cut_width(carat, width = 0.1,
+                                     boundary = 0)))
+#구간을 20개로 설정, 각 구간의 자료 개수 동일하게 유지
+p_dia +
+  geom_boxplot(aes(group = cut_number(carat, n = 20)))
+
+#이차원 결합확률밀도 그래프
+# 해석 방법 ----------------------------------------------------------
+# - 등고선 안쪽일수록 데이터가 더 밀집된 구간을 의미함
+#   → 산 위의 고도선과 비슷하게, 중심부일수록 "데이터가 모여 있다"는 뜻
+#
+# - 등고선 간격 해석:
+#   * 간격이 좁다 → 밀도의 변화가 가파름 (급격히 데이터가 모여 있는 부분)
+#   * 간격이 넓다 → 데이터가 비교적 고르게 분포
+#
+# - 최안쪽 곡선(center contour):
+#   → 가장 높은 밀도를 나타내며, "핵심 데이터 클러스터"라고 볼 수 있음
+#
+# - geom_density_2d() 그래프를 통해 알 수 있는 것:
+#   * 데이터가 (X, Y) 평면상 어디에 집중되는지
+#   * 분포 모양이 타원형인지, 비대칭인지
+#   * 다봉(multi-modal, 여러 군집)이 존재하는지
+#   등을 직관적으로 파악 가능
+# -------------------------------------------------------------------
+
+p_fa<-ggplot(faithful,
+             aes(x = eruptions, y = waiting)) +
+  xlim(1, 6) + ylim(35, 100)
+p_fa + geom_density_2d()
+
+#외곽선의 색으로 등고선 높이 표현
+p_fa +
+  geom_density_2d(aes(color = after_stat(level))) +
+  scale_color_paletteer_c("viridis::inferno")
+#그래프 위에 산점도 추가
+p_fa +
+  geom_density_2d(aes(color = after_stat(level))) +
+  geom_point(shape = 20)+
+  scale_color_paletteer_c("viridis::inferno")
+
+#내부를 색으로 채워 높이 표현
+p_fa + stat_density_2d(aes(fill = after_stat(level)),
+                       geom = "polygon")
+
+#히트맵으로 표현
+p_fa + stat_density_2d(aes(fill = after_stat(density)),
+                       geom = "raster", contour = FALSE) +
+  scale_fill_paletteer_c("ggthemes::Red-Gold")
+
+#산점도 행렬
+library(GGally)
+mtcars_1<- mtcars |> 
+  select(mpg, wt, disp, cyl, am)
+ggpairs(mtcars_1)
+#am과 cyl을 요인으로 변환
+mtcars_2<- mtcars_1 |> 
+  mutate(am = factor(am), cyl = factor(cyl))
+#산점도 행렬 작성
+ggpairs(mtcars_2)
+
+#am을 color에 매핑
+ggpairs(mtcars_2, aes(color = am),
+        upper = list(continuous = "density"),
+        lower = list(continuous = wrap("smooth", se = FALSE),
+                     combo = wrap("facethist", bins = 10)))
